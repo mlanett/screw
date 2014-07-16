@@ -1,5 +1,7 @@
 require "screw/version"
 
 module Screw
-  # Your code goes here...
+  autoload :Queue,  "screw/queue"
+
+  extend Logger
 end
