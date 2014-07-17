@@ -15,9 +15,13 @@ module Screw
         level = ::Logger::Severity.const_get(sym)
         name  = sym.to_s.downcase.to_sym
         pred  = "#{name}?".to_sym
-        define_method(name) do |message, progname = nil, &block|
+        define_method(name) do |message = nil, progname = nil, &block|
+          # Executing blocks in this mutex is not be a good idea. Resolve them first.
+          if block && (level >= @logger.level)
+            message = block.call.to_s
+          end
           @mutex.synchronize do
-            @logger.add(level, message, progname, &block)
+            @logger.add(level, message, progname)
           end
         end
         define_method(pred) do
@@ -92,4 +96,3 @@ module Screw
 
   end # Logger
 end # Screw
-
