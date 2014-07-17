@@ -37,49 +37,7 @@ module Screw
 
     end
 
-    # SerializedLogger addresses the problem of writing to a logger from multiple threads.
-    # This wraps a non-thread safe logger with a queue.
-    # Thus it does not slow down the callers.
-    # This logger does not support block parameters because we can't evaluate them safely AND lazily.
-    # It also does not support the severity predicates: debug? etc.
-    class SerializedLogger
-
-      def initialize(theLogger)
-        @logger = theLogger
-        @lines  = Screw::Queue.new
-        @actor  = Thread.new do
-          loop do
-            line = @lines.pop
-            break if line == CLOSE
-            level, message = *line
-            @logger.add(level, message)
-          end
-        end
-      end
-
-      ::Logger::Severity.constants.each do |sym|
-        level = ::Logger::Severity.const_get(sym)
-        name = sym.to_s.downcase.to_sym
-        define_method(name) do |message,&block|
-          raise "blocks are unsupported" if block
-          add(level, message)
-        end
-      end
-
-      def close
-        @lines.push CLOSE
-      end
-
-      private
-
-      def add(level, message)
-        @lines.push [ level, message ]
-      end
-
-      CLOSE = Object.new
-
-    end # SerializedLogger
-
+    # This logger will be shared by every class which includes the module. It's global.
     def logger=(aLogger)
       Thread.exclusive do
         @@logger = aLogger
@@ -87,6 +45,7 @@ module Screw
     end
 
     def logger
+      # I'm assuming that reads are atomic.
       @@logger ||= begin
         Thread.exclusive do
           @@logger ||= SafeLogger.new(::Logger.new(STDERR))
