@@ -16,5 +16,9 @@ module Screw
       send(method, *arguments, &block)
     end
 
+    def inspect
+      "#<#{self.class.name}(#{@target})>"
+    end
+
   end # Proxy
 end # Screw

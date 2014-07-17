@@ -2,6 +2,7 @@ require "screw/version"
 require "logger"
 
 module Screw
+  autoload :Actor,      "screw/actor"
   autoload :Logger,     "screw/logger"
   autoload :Proxy,      "screw/proxy"
   autoload :Queue,      "screw/queue"

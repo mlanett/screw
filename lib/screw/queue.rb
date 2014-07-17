@@ -57,5 +57,9 @@ module Screw
       end # synchronize
     end # pop
 
+    def inspect
+      "#<#{self.class.name} [#{@queue.join(',')}]>"
+    end
+
   end # Queue
 end
