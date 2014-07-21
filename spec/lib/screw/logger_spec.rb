@@ -2,11 +2,11 @@ require "spec_helper"
 require "logger"
 require "stringio"
 
-describe Screw::Logger::SafeLogger do
+describe Screw::Logger do
 
   let(:buffer) { StringIO.new("") }
   let(:base)   { ::Logger.new(buffer).tap { |it| it.formatter = ->(severity, datetime, program, message) { "#{message}\n" } } }
-  subject      { Screw::Logger::SafeLogger.new(base) }
+  subject      { Screw::Logger.new(base) }
 
   it "logs" do
     subject.info "Hello, world"

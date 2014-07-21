@@ -2,54 +2,34 @@ require "logger"
 require "thread"
 
 module Screw
-  module Logger
+  class Logger
 
-    class SafeLogger
+    def initialize(theLogger)
+      @logger = theLogger
+      @mutex  = Mutex.new
+    end
 
-      def initialize(theLogger)
-        @logger = theLogger
-        @mutex  = Mutex.new
-      end
-
-      ::Logger::Severity.constants.each do |sym|
-        level = ::Logger::Severity.const_get(sym)
-        name  = sym.to_s.downcase.to_sym
-        pred  = "#{name}?".to_sym
-        define_method(name) do |message = nil, progname = nil, &block|
+    ::Logger::Severity.constants.each do |sym|
+      level = ::Logger::Severity.const_get(sym)
+      name  = sym.to_s.downcase
+      pred  = name + "?"
+      define_method(name) do |message = nil, progname = nil, &block|
+        if level >= @logger.level # Unprotect access to #level is probably Ok.
           # Executing blocks in this mutex is not be a good idea. Resolve them first.
-          if block && (level >= @logger.level)
-            message = block.call.to_s
-          end
+          message = block.call.to_s if block
           @mutex.synchronize do
             @logger.add(level, message, progname)
           end
         end
-        define_method(pred) do
-          level >= @logger.level
-        end
       end
-
-      def close
-        @mutex.synchronize do
-          @logger.close
-        end
-      end
-
-    end
-
-    # This logger will be shared by every class which includes the module. It's global.
-    def logger=(aLogger)
-      Thread.exclusive do
-        @@logger = aLogger
+      define_method(pred) do
+        level >= @logger.level # Unprotect access to #level is probably Ok.
       end
     end
 
-    def logger
-      # I'm assuming that reads are atomic.
-      @@logger ||= begin
-        Thread.exclusive do
-          @@logger ||= SafeLogger.new(::Logger.new(STDERR))
-        end
+    def close
+      @mutex.synchronize do
+        @logger.close
       end
     end
 
