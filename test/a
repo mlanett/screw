@@ -1,0 +1,85 @@
+#!/usr/bin/env ruby
+# -*- encoding: utf-8 -*-
+
+require "bundler/setup"
+require "screw"
+#require "thread"
+require_relative "thread"
+
+class Master
+  include Screw::Actor
+
+  def initialize(jobs)
+    super()
+    @thread[:name] = "master"
+    @busy = []
+    @send = []
+    @idle = []
+    @jobs = (1..jobs).to_a
+  end
+
+  def once
+    if @jobs.size == 0
+      # POOL
+      if @idle.size > 0
+        worker = @idle.pop
+        worker.stop!.join!
+      elsif @busy.size > 0 || @send.size > 0
+        # wait
+      else
+        Screw.logger.info "Master done."
+        raise Stopped
+        # done!
+      end
+    else
+      if @idle.size == 0
+        # Screw.logger.debug "No idle workers, waiting"
+      else
+        job    = @jobs.pop
+        worker = @idle.pop
+        @send << worker
+        worker.async.perform job
+        # Screw.logger.info "Master sent job to worker; job:#{job}."
+      end
+    end
+  end
+
+  def run
+    begin
+      once
+    rescue Interrupt, SignalException
+      stop! # XXX is this right?
+    rescue Exception => x
+      Screw.logger.error "run failed due to: #{x.inspect}"
+    end
+    async.run
+  end
+
+  def ready(worker)
+    @busy.delete(worker)
+    @send.delete(worker)
+    @idle << worker
+    # Screw.logger.info "Master has #{@idle.size} idle workers."
+  end
+
+  def working(worker)
+    @idle.delete(worker)
+    @send.delete(worker)
+    @busy << worker
+  end
+
+  #def to_s
+  #  "Master(busy:#{@busy.size},send:#{@send.size},idle:#{@idle.size},jobs:#{@jobs.size})"
+  #end
+end
+
+Thread.current[:name] = "main"
+master = Master.new(4)
+
+2.times do
+  master.async.ready Screw::Worker.new(master.async)
+end
+
+Screw.logger.debug "main running; current=#{Thread.current.inspect}"
+master.async.run; master.join!
+Screw.logger.info "main done."

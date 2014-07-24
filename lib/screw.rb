@@ -7,6 +7,7 @@ module Screw
   autoload :Proxy,      "screw/proxy"
   autoload :Queue,      "screw/queue"
   autoload :Semaphore,  "screw/semaphore"
+  autoload :Worker,     "screw/worker"
 
   class << self
     @@logger = begin
