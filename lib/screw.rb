@@ -9,7 +9,7 @@ module Screw
 
   class << self
     @@logger = begin
-      base = ::Logger.new(STDERR)
+      base = ::Logger.new("/tmp/screw.log")
       base.formatter = ->(severity, datetime, program, message) do
         "%s pid=%i %s: %s\n" % [datetime.utc.strftime("%Y-%m-%dT%H:%M:%S"), Process.pid, severity.to_s[0], message]
       end
