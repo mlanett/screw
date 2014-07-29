@@ -11,7 +11,7 @@ class Pool
 
   def initialize(jobs)
     super()
-    @thread[:name] = "master"
+    @thread[:name] = "pool"
     @busy = []
     @send = []
     @idle = []
@@ -74,12 +74,12 @@ class Pool
 end
 
 Thread.current[:name] = "main"
-master = Pool.new(4)
+pool = Pool.new(4)
 
 2.times do
-  master.async.ready Screw::Worker.new(master.async)
+  pool.async.ready Screw::Worker.new(pool.async)
 end
 
 Screw.logger.debug "main running; current=#{Thread.current.inspect}"
-master.async.run; master.join!
+pool.async.run; pool.join!
 Screw.logger.info "main done."

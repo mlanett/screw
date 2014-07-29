@@ -40,10 +40,10 @@ class Pool
       begin
         once
       rescue Interrupt, SignalException => x
-        Screw.logger.error "yield failed due to: #{x.inspect}; stopping; master:#{self}"
+        Screw.logger.error "yield failed due to: #{x.inspect}; stopping; pool:#{self}"
         break
       rescue Exception => x
-        Screw.logger.error "yield failed due to: #{x.class.name} #{x.inspect}; continuing; master:#{self}"
+        Screw.logger.error "yield failed due to: #{x.class.name} #{x.inspect}; continuing; pool:#{self}"
       end
     end
     stop_all
@@ -76,12 +76,12 @@ class Pool
 end
 
 Thread.current[:name] = "main"
-master = Pool.new(4)
+pool = Pool.new(4)
 
 2.times do
-  master.ready Screw::Worker.new(master)
+  pool.ready Screw::Worker.new(pool)
 end
 
 Screw.logger.debug "main running; current=#{Thread.current.inspect}"
-master.run
+pool.run
 Screw.logger.info "main done."
