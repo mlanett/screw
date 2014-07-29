@@ -9,26 +9,32 @@ module Screw
 
     def perform job
       with_job(job) do
-        listener.working(self)
-        sleep rand
-        listener.ready(self)
+        listening do
+          sleep rand
+        end
       end
     end
 
-    def with_job job # yield
+    def with_job job # block
       self.job = job
-      # Screw.logger.debug "#{self} performing #{job}"
       yield
     ensure
       self.job = nil
       Screw.logger.info "#{self} performed #{job}"
     end
 
+    def listening # block
+      listener.working(self)
+      yield
+    ensure
+      listener.ready(self)
+    end
+
     def to_s
       if job
-        "%s#%x(%s)" % [ self.class.name, self.object_id, job.to_s ]
+        "<%s#%x %s>" % [ self.class.name, self.object_id, job.to_s ]
       else
-        "%s#%x" % [ self.class.name, self.object_id ]
+        "<%s#%x>" % [ self.class.name, self.object_id ]
       end
     end
 

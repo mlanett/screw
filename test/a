@@ -6,7 +6,7 @@ require "screw"
 #require "thread"
 require_relative "thread"
 
-class Master
+class Pool
   include Screw::Actor
 
   def initialize(jobs)
@@ -27,7 +27,7 @@ class Master
       elsif @busy.size > 0 || @send.size > 0
         # wait
       else
-        Screw.logger.info "Master done."
+        Screw.logger.info "Pool done."
         raise Stopped
         # done!
       end
@@ -39,7 +39,7 @@ class Master
         worker = @idle.pop
         @send << worker
         worker.async.perform job
-        # Screw.logger.info "Master sent job to worker; job:#{job}."
+        # Screw.logger.info "Pool sent job to worker; job:#{job}."
       end
     end
   end
@@ -59,7 +59,7 @@ class Master
     @busy.delete(worker)
     @send.delete(worker)
     @idle << worker
-    # Screw.logger.info "Master has #{@idle.size} idle workers."
+    # Screw.logger.info "Pool has #{@idle.size} idle workers."
   end
 
   def working(worker)
@@ -69,12 +69,12 @@ class Master
   end
 
   #def to_s
-  #  "Master(busy:#{@busy.size},send:#{@send.size},idle:#{@idle.size},jobs:#{@jobs.size})"
+  #  "Pool(busy:#{@busy.size},send:#{@send.size},idle:#{@idle.size},jobs:#{@jobs.size})"
   #end
 end
 
 Thread.current[:name] = "main"
-master = Master.new(4)
+master = Pool.new(4)
 
 2.times do
   master.async.ready Screw::Worker.new(master.async)
