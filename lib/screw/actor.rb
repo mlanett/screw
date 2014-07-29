@@ -32,13 +32,12 @@ module Screw
     def run!
       begin
         loop do
-          #
           begin
             message = @messages.pop
           rescue Queue::Timeout
             nil # just go around again
           end
-          #
+          # Interpret message.
           case message
           when nil # nop
             Thread.pass
@@ -51,7 +50,7 @@ module Screw
           else
             raise ArgumentError, "Unknown message #{message.inspect}"
           end
-          #
+          # Dispatch message.
           raise Unsupported, "block" if block
           raise Stopped if ! @processing
           result = self.send(method, *arguments)
@@ -90,6 +89,8 @@ module Screw
       @thread.join
       self
     end
+
+    protected
 
     class Call < Struct.new :method, :arguments, :block
       def to_s
