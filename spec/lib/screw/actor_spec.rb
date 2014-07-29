@@ -1,20 +1,22 @@
 require "spec_helper"
 
-class ActorTest
+class TestActor
   include Screw::Actor
+
   def initialize
     super()
-    @n = 0.0
-    @t = 0.0
+    @a = 0
+    @b = 1
   end
-  def add it
-    @n += 1
-    @t += it
-    self
+
+  def tick
+    @a,@b = @b,(@a+@b)
   end
-  def n() @n end
-  def t() @t end
-  def avg() @t / @n end
+
+  def tock
+    @a
+  end
+
   def to_s
     "Actor##{hash}"
   end
@@ -22,26 +24,25 @@ end
 
 describe Screw::Actor do
 
-  subject     { ActorTest.new }
+  subject     { TestActor.new }
   before      { (subject) } # force evaluation before threads run
   after       { subject.stop!.join! }
 
   it "processes methods" do
-    subject.async.add(1)
-    expect(subject.stop!.join!.n).to eq 1
+    subject.async.tick
+    expect(subject.stop!.join!.tock).to eq 1
   end
 
   it "does not process methods after stop" do
-    subject.async.add(1)
+    subject.async.tick
     subject.stop!
-    expect { subject.async.add(1) }.to raise_exception
+    expect { subject.async.tick }.to raise_exception
   end
 
   it "processes methods from multiple threads" do
-    (1..100).map { |i| Thread.new { subject.async.add(i%2 * 2 - 1) } }.map(&:join)
+    (1..100).map { |i| Thread.new { subject.async.tick } }.map(&:join)
     subject.stop!.join!
-    expect(subject.n).to eq 100
-    expect(subject.avg).to eq 0
+    expect(subject.tock).to eq 354224848179261915075
   end
 
 end
