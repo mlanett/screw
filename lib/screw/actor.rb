@@ -15,6 +15,12 @@ module Screw
   # This Actor implementation does not support pipeline optimization.
   module Actor
 
+    class Unsupported < ::Exception
+    end
+
+    class Stopped < ::Exception
+    end
+
     def initialize
       @listening  = true
       @messages   = Queue.new
@@ -51,7 +57,7 @@ module Screw
           result = self.send(method, *arguments)
           # Screw.logger.debug "Actor said #{method}; actor=#{self.inspect}"
           # TODO return result via a Future
-        end
+        end # loop
       rescue => x
         Screw.logger.error "Actor messed up lines due to #{x.inspect}; actor=#{self.inspect}"
         raise
@@ -83,12 +89,6 @@ module Screw
     def join!
       @thread.join
       self
-    end
-
-    class Unsupported < ::Exception
-    end
-
-    class Stopped < ::Exception
     end
 
     class Call < Struct.new :method, :arguments, :block
