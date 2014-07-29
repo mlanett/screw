@@ -32,14 +32,19 @@ module Screw
     def run!
       begin
         loop do
-          begin
-            message = @messages.pop
+          message = begin
+            timeout = @idle ? 0 : Queue::Forever
+            @messages.pop(timeout)
           rescue Queue::Timeout
-            nil # just go around again
+            :idle
           end
           # Interpret message.
           case message
-          when nil # nop
+          when :idle
+            @messages.push(:nop)
+            next if ! @idle
+            method, arguments = [@idle, []]
+          when :nop
             Thread.pass
             next
           when :stop
@@ -90,7 +95,23 @@ module Screw
       self
     end
 
+    def idle!(method = :idle)
+      # If the thread is already blocked on pop() then we need to interrupt it
+      # or push something through the queue.
+      # We also want a thread-safe way to set @idle.
+      raise ArgumentError unless self.respond_to?(method)
+      @mutex.synchronize do
+        raise Stopped if ! @listening
+        @messages.push(Call.new :set_idle, method)
+      end
+      self
+    end
+
     protected
+
+    def set_idle(method)
+      @idle = method
+    end
 
     class Call < Struct.new :method, :arguments, :block
       def to_s

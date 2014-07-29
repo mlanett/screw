@@ -45,4 +45,9 @@ describe Screw::Actor do
     expect(subject.tock).to eq 354224848179261915075
   end
 
+  it "idles if it has nothing else to do" do
+    subject.idle! :tick
+    Thread.pass until subject.tock > 0 # not entirely thread-safe but I haven't worked out a good way to extract results from Actors yet.
+  end
+
 end
