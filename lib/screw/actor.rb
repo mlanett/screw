@@ -26,12 +26,26 @@ module Screw
     def run!
       begin
         loop do
-          message = @messages.pop
-          if message == STOP
+          #
+          begin
+            message = @messages.pop
+          rescue Queue::Timeout
+            nil # just go around again
+          end
+          #
+          case message
+          when nil # nop
+            Thread.pass
+            next
+          when :stop
             @processing = false
             break
+          when Call
+            method, arguments, block = [message.method, message.arguments, message.block]
+          else
+            raise ArgumentError, "Unknown message #{message.inspect}"
           end
-          method, arguments, block = [message.method, message.arguments, message.block]
+          #
           raise Unsupported, "block" if block
           raise Stopped if ! @processing
           result = self.send(method, *arguments)
@@ -51,7 +65,7 @@ module Screw
         raise Unsupported, "block" if block
         @mutex.synchronize do
           raise Stopped if ! @listening
-          @messages.push(Go.new method, arguments, nil)
+          @messages.push(Call.new method, arguments, nil)
         end
         nil # TODO return a Future
       end
@@ -60,7 +74,7 @@ module Screw
     def stop!
       # Screw.logger.debug "Stopping actor=#{self.inspect}"
       @mutex.synchronize do
-        @messages.push(STOP) unless ! @listening
+        @messages.push(:stop) unless ! @listening
         @listening = false
       end
       self
@@ -77,9 +91,7 @@ module Screw
     class Stopped < ::Exception
     end
 
-    STOP = Object.new.tap { |it| def it.to_s() "STOP" end }
-
-    class Go < Struct.new :method, :arguments, :block
+    class Call < Struct.new :method, :arguments, :block
       def to_s
         self.method.to_s
       end
